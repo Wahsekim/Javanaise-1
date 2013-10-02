@@ -75,6 +75,15 @@ public interface JvnRemoteCoord extends Remote {
 	 **/
 	public void jvnTerminate(JvnRemoteServer js)
 			throws java.rmi.RemoteException, JvnException;
+	
+	/**
+	 * Remove a distributed object
+	 * @param joi : the JVN object identification
+	 * @param js : the remote reference of the server
+	 * @throws java.rmi.RemoteException 
+	 * @throws JvnException
+	 */
+	public void jvnRemoveObject(int joi, JvnRemoteServer js) throws java.rmi.RemoteException, JvnException;
 
 }
 

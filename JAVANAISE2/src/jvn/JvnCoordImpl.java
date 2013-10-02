@@ -201,6 +201,17 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
 			e.printStackTrace();
 		}
 	}
+
+	/**
+	 * Remove a distributed object
+	 * @param joi : the JVN object identification
+	 * @param js : the remote reference of the server
+	 * @throws java.rmi.RemoteException 
+	 * @throws JvnException
+	 */
+	public void jvnRemoveObject(int joi, JvnRemoteServer js) throws RemoteException, JvnException {
+		/*TODO*/
+	}
 }
 
 
