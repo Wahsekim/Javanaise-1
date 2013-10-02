@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 
-public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
+public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord, JvnLocalCoord{
 	/**
 	 * 
 	 */
@@ -83,7 +83,6 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
 		}
 	}
 
-	/*Put it into an interface for the structure*/
 	/*Sending a jvnInvalidateWriter message to a remote jvm for the id_obj object*/
 	public Serializable jvnInvalidateWriter(int id_obj, int id_jvm) throws RemoteException, JvnException{
 		return id_server.get(id_obj).jvnInvalidateWriter(id_obj);

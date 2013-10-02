@@ -9,9 +9,9 @@ public class JvnSharedObjectStructure {
 	private ArrayList<Integer> reader_list = new ArrayList<Integer>();
 	private ArrayList<Integer> owner = new ArrayList<Integer>();
 	private Integer writer = new Integer(-1);
-	private JvnCoordImpl coord;
+	private JvnLocalCoord coord;
 	
-	public JvnSharedObjectStructure(JvnObject obj, int id_jvm, JvnCoordImpl coord){
+	public JvnSharedObjectStructure(JvnObject obj, int id_jvm, JvnLocalCoord coord){
 		try {
 			id_jvn_object = obj.jvnGetObjectId();
 			addOwner(new Integer(id_jvm));
@@ -22,17 +22,14 @@ public class JvnSharedObjectStructure {
 		}
 	}
 	
-	public ArrayList<Integer> getReader(){
-		return reader_list;
-	}
-	
 	/*Va invalider le(s) reader(s) pour un writer*/
 	public synchronized void invalidateReader(int id_jvm) throws RemoteException, JvnException{
 		if(reader_list.size() > 0){
 			for(Integer i : reader_list){
 				coord.jvnInvalidateReader(id_jvn_object, i.intValue());
 			}
-			writer = id_jvm;
+			reader_list.clear();
+			writer = id_jvm;	
 		}
 	}
 	
@@ -41,6 +38,7 @@ public class JvnSharedObjectStructure {
 		if(writer > 0){
 			Serializable ser = coord.jvnInvalidateWriterForReader(id_jvn_object, writer);
 			reader_list.add(new Integer(id_jvm));
+			writer = -1;
 			return ser;
 		}
 		throw new JvnException("Impossible d'invalider writerForReader");
@@ -70,34 +68,19 @@ public class JvnSharedObjectStructure {
 		throw new JvnException("Aucune JVM avec l'id "+id+" ne détient l'objet "+id_jvn_object);	
 	}
 	
-	public boolean canBeRemoved(){
-		return owner.size() == 0;
-	}
-	
-	public int getWriter(){
-		return writer;
-	}
-	public void setWriter(Integer id){
+	public synchronized void setWriter(Integer id){
 		writer = id;
 	}
 	
-	public boolean hasWriter(){
+	public synchronized boolean hasWriter(){
 		return writer.intValue() != -1;
 	}
 	
-	public void setNoWriter(){
-		writer = -1;
-	}
-	
-	public void addReader(Integer id){
+	public synchronized void addReader(Integer id){
 		reader_list.add(id);
 	}
 	
-	public void removeReader(Integer id){
-		reader_list.remove(id);
-	}
-	
-	public boolean hasReader(){
+	public synchronized boolean hasReader(){
 		return !reader_list.isEmpty();
 	}
 	
