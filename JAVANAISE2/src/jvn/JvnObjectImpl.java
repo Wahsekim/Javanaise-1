@@ -20,17 +20,31 @@ public class JvnObjectImpl implements JvnObject {
 	}
 
 	public synchronized void jvnLockRead() throws JvnException {
-		if(STATE != STATE_ENUM.RC && STATE != STATE_ENUM.WC){
+		System.out.println("Etat courant :"+STATE+" sur l'objet "+joi);
+		if(STATE == STATE_ENUM.NL || STATE == STATE_ENUM.WC){
 			obj = JvnServerImpl.jvnGetServer().jvnLockRead(joi);
+			STATE = STATE_ENUM.R;
 		}
-		STATE = STATE_ENUM.R;
+		else if(STATE == STATE_ENUM.RC){
+			STATE = STATE_ENUM.R;
+		}
+		else{
+			throw new JvnException("Impossible de vérouiller l'objet"+joi+" en lecture, l'etat courant est le suivant : "+STATE);
+		}
 	}
 
 	public synchronized void jvnLockWrite() throws JvnException {
-		if(STATE != STATE_ENUM.WC && STATE != STATE_ENUM.RWC){
+		System.out.println("Etat courant :"+STATE+" sur l'objet "+joi);
+		if(STATE == STATE_ENUM.NL || STATE == STATE_ENUM.RC){
 			obj = JvnServerImpl.jvnGetServer().jvnLockWrite(joi);
+			STATE = STATE_ENUM.W;
 		}
-		STATE = STATE_ENUM.W;
+		else if(STATE == STATE_ENUM.WC){
+			STATE = STATE_ENUM.W;
+		}
+		else{
+			throw new JvnException("Impossible de vérouiller l'objet"+joi+" en écriture, l'etat courant est le suivant : "+STATE);
+		}
 	}
 
 	public synchronized void jvnUnLock() throws JvnException {
@@ -46,14 +60,9 @@ public class JvnObjectImpl implements JvnObject {
 			}
 		}
 		else if(STATE == STATE_ENUM.W){
-			if(wait_for_write){
+			if(wait_for_write || wait_for_read){
 				wait_for_write = false;
 				STATE = STATE_ENUM.NL;
-				this.notify();
-			}
-			else if(wait_for_read){
-				wait_for_read = false;
-				STATE = STATE_ENUM.RC;
 				this.notify();
 			}
 			else{
@@ -61,7 +70,14 @@ public class JvnObjectImpl implements JvnObject {
 			}
 		}
 		else if(STATE == STATE_ENUM.RWC){
-			STATE = STATE_ENUM.WC;
+			if(wait_for_write || wait_for_read){
+				wait_for_write = false;
+				STATE = STATE_ENUM.NL;
+				this.notify();
+			}
+			else{
+				STATE = STATE_ENUM.WC;
+			}
 		}
 		else{
 			throw new JvnException("Execution de jvnUnLock() sur un jnvObject id ="+joi+" avec l'état "+STATE);
@@ -77,38 +93,53 @@ public class JvnObjectImpl implements JvnObject {
 	}
 
 	public synchronized void jvnInvalidateReader() throws JvnException {
-		wait_for_write = true;
-		while(STATE == STATE_ENUM.R || STATE == STATE_ENUM.W){
-			try {
-				this.wait();
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+		if(STATE == STATE_ENUM.RC){
+			STATE = STATE_ENUM.NL;
+		}
+		else{
+			wait_for_write = true;
+			while(STATE == STATE_ENUM.R || STATE == STATE_ENUM.W || STATE == STATE_ENUM.RWC){
+				try {
+					this.wait();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 		}
 	}
 
 	public synchronized Serializable jvnInvalidateWriter() throws JvnException {
-		wait_for_write = true;
-		while(STATE == STATE_ENUM.R || STATE == STATE_ENUM.W){
-			try {
-				this.wait();
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+		if(STATE == STATE_ENUM.WC){
+			STATE = STATE_ENUM.NL;
+		}
+		else{
+			wait_for_write = true;
+			while(STATE == STATE_ENUM.R || STATE == STATE_ENUM.W || STATE == STATE_ENUM.RWC){
+				try {
+					this.wait();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 		}
 		return obj;
 	}
 
 	public synchronized Serializable jvnInvalidateWriterForReader() throws JvnException {
-		wait_for_read = true;	
-		if(STATE == STATE_ENUM.R || STATE == STATE_ENUM.W){
-			try {
-				this.wait();
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+		if(STATE == STATE_ENUM.WC){
+			STATE = STATE_ENUM.NL;
+		}
+		else{
+			wait_for_read = true;	
+			if(STATE == STATE_ENUM.R || STATE == STATE_ENUM.W || STATE == STATE_ENUM.RWC){
+				try {
+					this.wait();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 		}
 		return obj;

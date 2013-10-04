@@ -22,11 +22,13 @@ public class JvnSharedObjectStructure {
 		}
 	}
 	
-	/*Va invalider le(s) reader(s) pour un writer*/
+	/*Va invalider le(s) reader(s) pour un writer, sauf si le reader est le demandeur*/
 	public synchronized void invalidateReader(int id_jvm) throws RemoteException, JvnException{
 		if(reader_list.size() > 0){
 			for(Integer i : reader_list){
-				coord.jvnInvalidateReader(id_jvn_object, i.intValue());
+				if(i.intValue() != id_jvm){
+					coord.jvnInvalidateReader(id_jvn_object, i.intValue());
+				}
 			}
 			reader_list.clear();
 			writer = id_jvm;	

@@ -1,4 +1,9 @@
-package jvn;
+package tests;
+
+import jvn.JvnException;
+import jvn.JvnObject;
+import jvn.JvnServerImpl;
+import jvn.MonObjet;
 
 
 
