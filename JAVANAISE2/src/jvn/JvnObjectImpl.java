@@ -100,6 +100,7 @@ public class JvnObjectImpl implements JvnObject {
 			wait_for_write = true;
 			while(STATE == STATE_ENUM.R || STATE == STATE_ENUM.W || STATE == STATE_ENUM.RWC){
 				try {
+					System.out.println("waiting reader");
 					this.wait();
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
@@ -117,6 +118,7 @@ public class JvnObjectImpl implements JvnObject {
 			wait_for_write = true;
 			while(STATE == STATE_ENUM.R || STATE == STATE_ENUM.W || STATE == STATE_ENUM.RWC){
 				try {
+					System.out.println("waiting writer");
 					this.wait();
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
@@ -135,6 +137,7 @@ public class JvnObjectImpl implements JvnObject {
 			wait_for_read = true;	
 			if(STATE == STATE_ENUM.R || STATE == STATE_ENUM.W || STATE == STATE_ENUM.RWC){
 				try {
+					System.out.println("waiting writerforreader");
 					this.wait();
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
