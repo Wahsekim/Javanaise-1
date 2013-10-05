@@ -85,17 +85,17 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord,
 
 	/*Sending a jvnInvalidateWriter message to a remote jvm for the id_obj object*/
 	public Serializable jvnInvalidateWriter(int id_obj, int id_jvm) throws RemoteException, JvnException{
-		return id_server.get(id_obj).jvnInvalidateWriter(id_obj);
+		return id_server.get(id_jvm).jvnInvalidateWriter(id_obj);
 	}
 
 	/*Sending a jvnInvalidateReader message to a remote jvm for the id_obj object*/
 	public void jvnInvalidateReader(int id_obj, int id_jvm) throws RemoteException, JvnException{
-		id_server.get(id_obj).jvnInvalidateReader(id_obj);
+		id_server.get(id_jvm).jvnInvalidateReader(id_obj);
 	}
 
 	/*Sending a jvnInvalidateWriterForReader message to a remote jvm for the id_obj object*/
 	public Serializable jvnInvalidateWriterForReader(int id_obj, int id_jvm) throws RemoteException, JvnException{
-		return id_server.get(id_obj).jvnInvalidateWriterForReader(id_obj);
+		return id_server.get(id_jvm).jvnInvalidateWriterForReader(id_obj);
 	}
 
 
@@ -140,14 +140,22 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord,
 	 * @throws java.rmi.RemoteException, JvnException
 	 **/
 	public Serializable jvnLockRead(int joi, JvnRemoteServer js) throws java.rmi.RemoteException, JvnException{
+		System.out.println("Coord dit : lock read demandé par "+js.jvnGetId()+" sur l'objet "+joi+"     "+System.currentTimeMillis());
 		JvnSharedObjectStructure str = getStruct(joi);
+		str.getLock();
 		if(str.hasWriter()){
+			System.out.println("has writer par "+js.jvnGetId()+" sur l'objet "+joi+"     "+System.currentTimeMillis());
 			Serializable ser = str.invalidateWriterForReader(js.jvnGetId());
 			updateObject(joi,ser);
+			System.out.println("Coord dit : lock read demandé par "+js.jvnGetId()+" sur l'objet "+joi+" est TERmINEEEEEEEEEE"+"     "+System.currentTimeMillis());
+			str.releaseLock();
 			return ser;
 		}
 		else{
+			System.out.println("nobody or reader par "+js.jvnGetId()+" sur l'objet "+joi+"     "+System.currentTimeMillis());
 			str.addReader(js.jvnGetId());
+			System.out.println("Coord dit : lock read demandé par "+js.jvnGetId()+" sur l'objet "+joi+" TERmINEEEEEEEEEE"+"     "+System.currentTimeMillis());
+			str.releaseLock();
 			return id_object.get(str.getObjectId()).jvnGetObjectState();
 		}
 	}
@@ -165,18 +173,26 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord,
 	 * @throws java.rmi.RemoteException, JvnException
 	 **/
 	public Serializable jvnLockWrite(int joi, JvnRemoteServer js) throws java.rmi.RemoteException, JvnException{
+		System.out.println("Coord dit : lock write demandé par "+js.jvnGetId()+" sur l'objet "+joi+"     "+System.currentTimeMillis());
 		JvnSharedObjectStructure str = getStruct(joi);
+		str.getLock();
 		if(str.hasWriter()){
+			System.out.println("has writer par "+js.jvnGetId()+" sur l'objet "+joi+"     "+System.currentTimeMillis());
 			Serializable ser = str.invalidateWriter(js.jvnGetId());
 			updateObject(joi,ser);
+			System.out.println("Coord dit : lock write demandé par "+js.jvnGetId()+" sur l'objet "+joi+" est TERMINEEEEEEEEEEEEE"+"     "+System.currentTimeMillis());
 			return ser;
 		}
 		else if(str.hasReader()){
+			System.out.println("has reader par "+js.jvnGetId()+" sur l'objet "+joi+"     "+System.currentTimeMillis());
 			str.invalidateReader(js.jvnGetId());
 		}
 		else{
+			System.out.println("nobody par "+js.jvnGetId()+" sur l'objet "+joi+"     "+System.currentTimeMillis());
 			str.setWriter(new Integer(js.jvnGetId()));
 		}
+		System.out.println("Coord dit : lock write demandé par "+js.jvnGetId()+" sur l'objet "+joi+" est TERMINEEEEEEEEEEEEE"+"     "+System.currentTimeMillis());
+		str.releaseLock();
 		return id_object.get(str.getObjectId()).jvnGetObjectState();
 	}
 

@@ -93,6 +93,7 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
 	public void jvnRegisterObject(String jon, JvnObject jo)
 			throws jvn.JvnException {
 		try {
+			System.out.println("Je suis le serveur "+id+" registering "+jon+" qui est l'objet d'id :"+jo.jvnGetObjectId());
 			coordinator.jvnRegisterObject(jon, jo, this);
 		} catch (RemoteException e) {
 			// TODO Auto-generated catch block
@@ -109,7 +110,9 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
 	public JvnObject jvnLookupObject(String jon)
 			throws jvn.JvnException {
 		try {
-			return coordinator.jvnLookupObject(jon, this);
+			JvnObject obj = coordinator.jvnLookupObject(jon, this);
+			idobj_intercepteur.put(new Integer(obj.jvnGetObjectId()), obj);
+			return obj;
 		} catch (RemoteException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

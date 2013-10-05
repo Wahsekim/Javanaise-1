@@ -31,7 +31,7 @@ public class MainCritical2 {
 						obj.jvnLockWrite();
 						System.out.println("Lock acquire");
 						((MonObjet)obj.jvnGetObjectState()).setString("lock by"+name);
-						Thread.sleep(1000);
+						Thread.sleep(1000*(num_rand+1));
 						obj.jvnUnLock();
 						System.out.println("Unlock done");
 						break;
@@ -39,7 +39,7 @@ public class MainCritical2 {
 						System.out.println("Lock read on "+obj.jvnGetObjectId()+" by "+name);
 						obj.jvnLockRead();
 						System.out.println("Actual value : "+((MonObjet)obj.jvnGetObjectState()).getString());
-						Thread.sleep(1000);
+						Thread.sleep(1000*(num_rand+1));
 						obj.jvnUnLock();
 						System.out.println("Unlock done");
 						break; 
