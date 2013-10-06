@@ -174,4 +174,8 @@ public class JvnObjectImpl implements JvnObject {
 		return obj;
 	}
 
+	public void jvnUpdateObjectState(Serializable ser) throws JvnException {
+		this.obj = ser;
+	}
+
 }

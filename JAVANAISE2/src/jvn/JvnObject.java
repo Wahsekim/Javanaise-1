@@ -46,6 +46,7 @@ public interface JvnObject extends Serializable {
 	public int jvnGetObjectId()
 			throws jvn.JvnException; 
 
+	public void jvnUpdateObjectState(Serializable ser) throws jvn.JvnException;
 	/**
 	 * Get the object state
 	 * @throws JvnException

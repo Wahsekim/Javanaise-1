@@ -1,12 +1,12 @@
 package jvn;
 
 import java.io.Serializable;
-import java.rmi.RemoteException;
 import java.util.ArrayList;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class JvnSharedObjectStructure {
 	private int id_jvn_object;
-	private ArrayList<Integer> reader_list = new ArrayList<Integer>();
+	private CopyOnWriteArrayList<Integer> reader_list = new CopyOnWriteArrayList<Integer>();
 	private ArrayList<Integer> owner = new ArrayList<Integer>();
 	private Integer writer = new Integer(-1);
 	private JvnLocalCoord coord;
@@ -47,7 +47,7 @@ public class JvnSharedObjectStructure {
 	}
 
 	/*Va invalider le(s) reader(s) pour un writer, sauf si le reader est le demandeur*/
-	public synchronized void invalidateReader(int id_jvm) throws RemoteException, JvnException{
+	public synchronized void invalidateReader(int id_jvm) throws JvnException{
 		if(reader_list.size() > 0){
 			for(Integer i : reader_list){
 				System.out.println("pour l'objet "+id_jvn_object+" j'invalide"+i.intValue()+"     "+System.currentTimeMillis());
@@ -63,7 +63,7 @@ public class JvnSharedObjectStructure {
 	}
 
 	/*Va invalider le writer pour un reader*/
-	public synchronized Serializable invalidateWriterForReader(int id_jvm) throws RemoteException, JvnException{
+	public synchronized Serializable invalidateWriterForReader(int id_jvm) throws JvnException{
 		Serializable ser = null;
 		if(writer > 0){
 			System.out.println("pour l'objet "+id_jvn_object+" j'invalide le writer"+writer+"     "+System.currentTimeMillis());
@@ -77,7 +77,7 @@ public class JvnSharedObjectStructure {
 	}
 
 	/*Va invalider le writer pour un writer*/
-	public synchronized Serializable invalidateWriter(int id_jvm) throws RemoteException, JvnException{
+	public synchronized Serializable invalidateWriter(int id_jvm) throws JvnException{
 		if(writer > 0){
 			System.out.println("pour l'objet "+id_jvn_object+" j'invalide le writer"+writer+" pour un writer"+id_jvm+"     "+System.currentTimeMillis());
 			Serializable ser = coord.jvnInvalidateWriter(id_jvn_object, writer);
@@ -88,18 +88,31 @@ public class JvnSharedObjectStructure {
 		throw new JvnException("Impossible d'invalider writer");
 	}
 
-	public void addOwner(int id){
+	public synchronized void addOwner(int id){
 		owner.add(new Integer(id));
 	}
 
-	public void removeOwner(int id) throws JvnException{
+	public synchronized void removeOwner(int id){
+		System.out.println("REMOVE OWWWNNNNEEERRRRR");
+		boolean exists = false;
 		for(Integer i : owner){
 			if(i.intValue() == id){
 				owner.remove(i);
-				return;
+				exists = true;
+				break;
 			}
 		}
-		throw new JvnException("Aucune JVM avec l'id "+id+" ne détient l'objet "+id_jvn_object);	
+		if(exists){
+			if(writer == id){
+				writer = -1;
+			}
+			for(Integer i : reader_list){
+				if(i.intValue() == id){
+					reader_list.remove(i);
+					break;
+				}
+			}
+		}
 	}
 
 	public synchronized void setWriter(Integer id){

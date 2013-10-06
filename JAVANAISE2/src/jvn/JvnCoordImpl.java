@@ -26,8 +26,8 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord,
 	private HashMap<String, Integer> name_objectid = new HashMap<String, Integer>();
 	private ArrayList<JvnSharedObjectStructure> struct_list = new ArrayList<JvnSharedObjectStructure>();
 	private HashMap<Integer, JvnObject> id_object = new HashMap<Integer, JvnObject>();
-	private int NEXT_ID = 1;
-	private int NEXT_ID_JVM = 1;
+	private int NEXT_ID = 0;
+	private int NEXT_ID_JVM = 0;
 	/**
 	 * Default constructor
 	 * @throws JvnException
@@ -44,13 +44,13 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord,
 	 * @throws java.rmi.RemoteException,JvnException
 	 **/
 	public synchronized int jvnGetObjectId() throws java.rmi.RemoteException,jvn.JvnException {
-		NEXT_ID += 1;
-		return NEXT_ID - 1;
+		NEXT_ID ++;
+		return NEXT_ID;
 	}
 
 	public synchronized int jvnGetServerId() throws RemoteException, JvnException {
 		NEXT_ID_JVM++;
-		return NEXT_ID_JVM - 1;
+		return NEXT_ID_JVM ;
 	}
 
 	/**
@@ -82,20 +82,50 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord,
 			name_objectid.put(jon, new Integer(jo.jvnGetObjectId()));
 		}
 	}
+	
+	/*Supprimer un client, donc tous ses locks dans la structure ainsi que toutes les références de lui dans le coord*/
+	private void deleteClient(int id_jvm){
+		for(JvnSharedObjectStructure str : struct_list){
+			str.removeOwner(id_jvm);
+		}
+		id_server.remove(new Integer(id_jvm));
+	}
 
 	/*Sending a jvnInvalidateWriter message to a remote jvm for the id_obj object*/
-	public Serializable jvnInvalidateWriter(int id_obj, int id_jvm) throws RemoteException, JvnException{
-		return id_server.get(id_jvm).jvnInvalidateWriter(id_obj);
+	public Serializable jvnInvalidateWriter(int id_obj, int id_jvm) throws JvnException{
+		Serializable ser = null;
+		try {
+			ser = id_server.get(id_jvm).jvnInvalidateWriter(id_obj);
+		} catch (RemoteException e) {
+			/*Le client distant n'est plus disponible, on le supprime et on renvoie la dernière valeur connu pour l'objet*/
+			deleteClient(id_jvm);
+			ser = id_object.get(new Integer(id_obj)).jvnGetObjectState();
+		}
+		return ser;
 	}
 
 	/*Sending a jvnInvalidateReader message to a remote jvm for the id_obj object*/
-	public void jvnInvalidateReader(int id_obj, int id_jvm) throws RemoteException, JvnException{
-		id_server.get(id_jvm).jvnInvalidateReader(id_obj);
+	public void jvnInvalidateReader(int id_obj, int id_jvm) throws JvnException{
+		try{
+			id_server.get(id_jvm).jvnInvalidateReader(id_obj);
+		}
+		catch (RemoteException e) {
+			/*Le client distant n'est plus disponible, on le supprime et on renvoie la dernière valeur connu pour l'objet*/
+			deleteClient(id_jvm);
+		}
 	}
 
 	/*Sending a jvnInvalidateWriterForReader message to a remote jvm for the id_obj object*/
-	public Serializable jvnInvalidateWriterForReader(int id_obj, int id_jvm) throws RemoteException, JvnException{
-		return id_server.get(id_jvm).jvnInvalidateWriterForReader(id_obj);
+	public Serializable jvnInvalidateWriterForReader(int id_obj, int id_jvm) throws JvnException{
+		Serializable ser = null;
+		try {
+			ser = id_server.get(id_jvm).jvnInvalidateWriterForReader(id_obj);
+		} catch (RemoteException e) {
+			/*Le client distant n'est plus disponible, on le supprime et on renvoie la dernière valeur connu pour l'objet*/
+			deleteClient(id_jvm);
+			ser = id_object.get(new Integer(id_obj)).jvnGetObjectState();
+		}
+		return ser;
 	}
 
 
@@ -160,9 +190,8 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord,
 		}
 	}
 
-	private void updateObject(int id, Serializable ser){
-		id_object.remove(id);
-		id_object.put(new Integer(id), new JvnObjectImpl(id, ser));
+	private void updateObject(int id, Serializable ser) throws JvnException{
+		id_object.get(new Integer(id)).jvnUpdateObjectState(ser);
 	}
 
 	/**
