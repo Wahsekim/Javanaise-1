@@ -19,42 +19,67 @@ public class JvnObjectImpl implements JvnObject {
 		this.obj = obj;
 	}
 
-	public synchronized void jvnLockRead() throws JvnException {
-		System.out.println("lock read Etat courant :"+STATE+" sur l'objet "+joi+"     "+System.currentTimeMillis());
-		if(STATE != STATE_ENUM.RC && STATE != STATE_ENUM.WC){
+	public void jvnLockRead() throws JvnException {
+		boolean ask = false;
+		synchronized(this){
+			System.out.println("lock read Etat courant :"+STATE+" sur l'objet "+joi+"     "+System.currentTimeMillis());
+			if(STATE != STATE_ENUM.RC && STATE != STATE_ENUM.WC){
+				ask = true;
+			}
+		}
+
+		if(ask){
 			obj = JvnServerImpl.jvnGetServer().jvnLockRead(joi);
-			STATE = STATE_ENUM.R;
 		}
-		else if(STATE == STATE_ENUM.RC || STATE == STATE_ENUM.WC){
-			STATE = STATE_ENUM.R;
-		}
-		else{
-			throw new JvnException("Impossible de vérouiller l'objet"+joi+" en lecture, l'etat courant est le suivant : "+STATE);
+		synchronized(this){
+			if(ask){
+				STATE = STATE_ENUM.R;
+			}
+			else if(STATE == STATE_ENUM.RC){
+				STATE = STATE_ENUM.R;
+			}
+			else if(STATE == STATE_ENUM.WC){
+				STATE = STATE_ENUM.RWC;
+			}
+			else{
+				throw new JvnException("Impossible de vérouiller l'objet"+joi+" en lecture, l'etat courant est le suivant : "+STATE);
+			}
 		}
 		System.out.println("lock read Etat courant :"+STATE+" sur l'objet "+joi+" terminéééééééé"+"     "+System.currentTimeMillis());
 	}
 
-	public synchronized void jvnLockWrite() throws JvnException {
-		System.out.println("lock write Etat courant :"+STATE+" sur l'objet "+joi+"     "+System.currentTimeMillis());
-		if(STATE != STATE_ENUM.WC){
+	public void jvnLockWrite() throws JvnException {
+		boolean ask = false;
+		synchronized(this){
+			System.out.println("lock write Etat courant :"+STATE+" sur l'objet "+joi+"     "+System.currentTimeMillis());
+			if(STATE != STATE_ENUM.WC){
+				ask = true;
+			}
+		}
+		
+		if(ask){
 			obj = JvnServerImpl.jvnGetServer().jvnLockWrite(joi);
-			STATE = STATE_ENUM.W;
 		}
-		else if(STATE == STATE_ENUM.WC){
-			STATE = STATE_ENUM.W;
-		}
-		else{
-			throw new JvnException("Impossible de vérouiller l'objet"+joi+" en écriture, l'etat courant est le suivant : "+STATE+"     "+System.currentTimeMillis());
-		}
+		
+		synchronized(this){
+			if(ask){
+				STATE = STATE_ENUM.W;
+			}
+			else if(STATE == STATE_ENUM.WC){
+				STATE = STATE_ENUM.W;
+			}
+			else{
+				throw new JvnException("Impossible de vérouiller l'objet"+joi+" en écriture, l'etat courant est le suivant : "+STATE+"     "+System.currentTimeMillis());
+			}
+		}		
 		System.out.println("lock write Etat courant :"+STATE+" sur l'objet "+joi+" terminéééééééé"+"     "+System.currentTimeMillis());
 	}
 
 	public synchronized void jvnUnLock() throws JvnException {
 		System.out.println("unlock STATE : "+STATE+" waitforread : "+wait_for_read+" waitforwrite : "+wait_for_write+"     "+System.currentTimeMillis());
 		if(STATE == STATE_ENUM.R){
-			if(wait_for_write || wait_for_read){
+			if(wait_for_write){
 				wait_for_write = false;
-				wait_for_read = false;
 				STATE = STATE_ENUM.NL;
 				this.notify();
 			}
@@ -62,20 +87,10 @@ public class JvnObjectImpl implements JvnObject {
 				STATE = STATE_ENUM.RC;
 			}
 		}
-		else if(STATE == STATE_ENUM.W){
+		else if(STATE == STATE_ENUM.W || STATE == STATE_ENUM.RWC){
 			if(wait_for_write || wait_for_read){
 				wait_for_write = false;
 				wait_for_read = false;
-				STATE = STATE_ENUM.NL;
-				this.notify();
-			}
-			else{
-				STATE = STATE_ENUM.WC;
-			}
-		}
-		else if(STATE == STATE_ENUM.RWC){
-			if(wait_for_write || wait_for_read){
-				wait_for_write = false;
 				STATE = STATE_ENUM.NL;
 				this.notify();
 			}
@@ -99,7 +114,7 @@ public class JvnObjectImpl implements JvnObject {
 
 	public synchronized void jvnInvalidateReader() throws JvnException {
 		System.out.println("invalidate reader with state : "+STATE+" sur l'objet "+joi+"         "+System.currentTimeMillis());
-		if(STATE != STATE_ENUM.R && STATE != STATE_ENUM.W){
+		if(STATE != STATE_ENUM.R && STATE != STATE_ENUM.RWC){
 			STATE = STATE_ENUM.NL;
 		}
 		else{
@@ -119,12 +134,12 @@ public class JvnObjectImpl implements JvnObject {
 	public synchronized Serializable jvnInvalidateWriter() throws JvnException {
 		System.out.println("invalidate writer with state : "+STATE+" sur l'objet "+joi+"         "+System.currentTimeMillis());
 
-		if(STATE != STATE_ENUM.R && STATE != STATE_ENUM.W){
+		if(STATE != STATE_ENUM.RWC && STATE != STATE_ENUM.W){
 			STATE = STATE_ENUM.NL;
 		}
 		else{
 			wait_for_write = true;
-			while(STATE == STATE_ENUM.R || STATE == STATE_ENUM.W || STATE == STATE_ENUM.RWC){
+			while(STATE == STATE_ENUM.W || STATE == STATE_ENUM.RWC){
 				try {
 					System.out.println("waiting writer"+"     "+System.currentTimeMillis());
 					this.wait();
@@ -137,15 +152,16 @@ public class JvnObjectImpl implements JvnObject {
 		return obj;
 	}
 
+	/*A modifier plus tard gestion du passage à RC pour le writer et l'associer dans la structure aussi*/
 	public synchronized Serializable jvnInvalidateWriterForReader() throws JvnException {
 		System.out.println("invalidate writerforreader with state : "+STATE+" sur l'objet "+joi+"         "+System.currentTimeMillis());
 
-		if(STATE != STATE_ENUM.R && STATE != STATE_ENUM.W){
+		if(STATE != STATE_ENUM.RWC && STATE != STATE_ENUM.W){
 			STATE = STATE_ENUM.NL;
 		}
 		else{
 			wait_for_read = true;	
-			if(STATE == STATE_ENUM.R || STATE == STATE_ENUM.W || STATE == STATE_ENUM.RWC){
+			if(STATE == STATE_ENUM.W || STATE == STATE_ENUM.RWC){
 				try {
 					System.out.println("waiting writerforreader"+"     "+System.currentTimeMillis());
 					this.wait();

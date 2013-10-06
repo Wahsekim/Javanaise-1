@@ -181,6 +181,7 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord,
 			Serializable ser = str.invalidateWriter(js.jvnGetId());
 			updateObject(joi,ser);
 			System.out.println("Coord dit : lock write demandé par "+js.jvnGetId()+" sur l'objet "+joi+" est TERMINEEEEEEEEEEEEE"+"     "+System.currentTimeMillis());
+			str.releaseLock();
 			return ser;
 		}
 		else if(str.hasReader()){

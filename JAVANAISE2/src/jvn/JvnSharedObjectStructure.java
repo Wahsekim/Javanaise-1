@@ -23,6 +23,7 @@ public class JvnSharedObjectStructure {
 		}
 	}
 
+	/*Obtenir un verrou sur la structure*/
 	public synchronized void getLock(){
 		System.out.println("GET LOCK ON "+id_jvn_object);
 		while(locked){
@@ -38,6 +39,7 @@ public class JvnSharedObjectStructure {
 		locked = true;
 	}
 
+	/*Relacher le verrou de la structure*/
 	public synchronized void releaseLock(){
 		System.out.println("RELEASE LOCK ASKED ON "+id_jvn_object);
 		locked = false;
