@@ -22,7 +22,7 @@ public class MainCritical2 {
 			array.add(shared_object_1);
 			array.add(shared_object_2);
 			array.add(shared_object_3);
-			for(int i = 0; i < 100; i++){
+			for(int i = 0; i < 10; i++){
 				for(JvnObjectImpl obj : array){
 					num_rand = (int) Math.round(Math.random());
 					switch(num_rand){
@@ -46,6 +46,7 @@ public class MainCritical2 {
 					}		
 				}
 			}
+			JvnServerImpl.jvnGetServer().jvnTerminate();
 			System.out.println("YES fin du test pour "+name);
 			System.exit(0);
 		} catch (JvnException e) {

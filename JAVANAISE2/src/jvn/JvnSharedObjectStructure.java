@@ -4,7 +4,11 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public class JvnSharedObjectStructure {
+public class JvnSharedObjectStructure implements Serializable {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -3186748225270818874L;
 	private int id_jvn_object;
 	private CopyOnWriteArrayList<Integer> reader_list = new CopyOnWriteArrayList<Integer>();
 	private ArrayList<Integer> owner = new ArrayList<Integer>();
@@ -43,6 +47,7 @@ public class JvnSharedObjectStructure {
 	public synchronized void releaseLock(){
 		System.out.println("RELEASE LOCK ASKED ON "+id_jvn_object);
 		locked = false;
+		coord.jvnSaveCoordState();
 		this.notify();
 	}
 

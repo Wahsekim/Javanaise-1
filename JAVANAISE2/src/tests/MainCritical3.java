@@ -22,7 +22,7 @@ public class MainCritical3 {
 			array.add(shared_object_3);
 			array.add(shared_object_1);
 			array.add(shared_object_2);
-			for(int i = 0; i < 100; i++){
+			for(int i = 0; i < 20; i++){
 				for(JvnObjectImpl obj : array){
 					num_rand = (int) Math.round(Math.random());
 					switch(num_rand){
@@ -31,7 +31,7 @@ public class MainCritical3 {
 						obj.jvnLockWrite();
 						System.out.println("Lock acquire");
 						((MonObjet)obj.jvnGetObjectState()).setString("lock by"+name);
-						Thread.sleep(1000*(num_rand+1));
+						//Thread.sleep(1000*(num_rand+1));
 						obj.jvnUnLock();
 						System.out.println("Unlock done");
 						break;
@@ -46,6 +46,7 @@ public class MainCritical3 {
 					}		
 				}
 			}
+			JvnServerImpl.jvnGetServer().jvnTerminate();
 			System.out.println("YES fin du test pour "+name);
 			System.exit(0);
 		} catch (JvnException e) {

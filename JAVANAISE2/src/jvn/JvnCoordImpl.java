@@ -8,6 +8,12 @@
 
 package jvn;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
@@ -36,6 +42,7 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord,
 		LocateRegistry.createRegistry(5555);
 		Naming.rebind("//localhost:5555/coordinator",  this);
 		System.out.println("Coordinateur enregistré dans rmiregistry, pret à fonctionner");
+		jvnRestoreCoordState();
 	}
 
 	/**
@@ -89,6 +96,45 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord,
 			str.removeOwner(id_jvm);
 		}
 		id_server.remove(new Integer(id_jvm));
+		jvnSaveCoordState();
+	}
+	
+	public synchronized void jvnSaveCoordState(){
+			try {
+				FileOutputStream fichier = new FileOutputStream("coord.ser");
+				ObjectOutputStream oos = new ObjectOutputStream(fichier);
+				oos.writeObject(this);
+				oos.flush();
+				oos.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+	}
+	
+	public synchronized void jvnRestoreCoordState(){
+		File f = new File("coord.ser");
+		if(f.exists()){
+			System.out.println("Restoring an old instance of coord");
+			try {
+				FileInputStream fichier = new FileInputStream("coord.ser");
+				ObjectInputStream ois = new ObjectInputStream(fichier);
+				JvnCoordImpl restored = (JvnCoordImpl)ois.readObject();
+				this.id_object = restored.id_object;
+				this.id_server = restored.id_server;
+				this.name_objectid = restored.name_objectid;
+				this.NEXT_ID = restored.NEXT_ID;
+				this.NEXT_ID_JVM = restored.NEXT_ID_JVM;
+				this.struct_list = restored.struct_list;
+				ois.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 	}
 
 	/*Sending a jvnInvalidateWriter message to a remote jvm for the id_obj object*/
@@ -233,7 +279,7 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord,
 	 **/
 	public void jvnTerminate(JvnRemoteServer js)
 			throws java.rmi.RemoteException, JvnException {
-		// to be completed
+		deleteClient(js.jvnGetId());
 	}
 
 
